@@ -20,6 +20,7 @@ docker compose exec -T app pytest -q
 - 5. 时效计算：`/timeliness`，`/api/timeliness`。
 - 6. 赔付对账：`/compensation`，`/api/compensation`。
 - 7. 批次归档：`/archives`，`/api/archives`。
+- 8. 月末抽检：`/sampling`，`/api/sampling`（草稿/确认/领取）。补传改变超时异常集合时，原已确认清单冻结保留，另生成待确认新版本；每批唯一可执行清单由质控确认后产生，归档只读取已确认版本。
 
 ## 核心规则
 

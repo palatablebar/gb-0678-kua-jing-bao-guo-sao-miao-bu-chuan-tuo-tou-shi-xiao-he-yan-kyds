@@ -1,0 +1,52 @@
+{% extends 'base.html' %}{% block panels %}
+<div class="grid">
+  <section class="panel wide">
+    <div class="panel__head"><h2>月末超时抽检 · 可执行核验样本</h2>
+      <span id="active-state">{{'已确认 V'~active.seq if active else '尚无已确认清单'}}</span></div>
+    <div class="panel__body controls">
+      <label>抽检数量（固定）<input id="sample-size" type="number" min="1" value="{{active.sample_size if active else 2}}" aria-label="固定抽检数量"></label>
+      <label>补传候选批次<input id="candidate-run" placeholder="留空=当前批次 {{run.run_id[:10]}}…" aria-label="补传候选批次"></label>
+      <button class="primary" id="build-draft">按最新异常重抽（生成待确认清单）</button>
+      <span id="message" role="status"></span>
+    </div>
+  </section>
+
+  <section class="panel wide">
+    <div class="panel__head"><h2>当前可执行清单（已确认 · 客服领取锁定）</h2><span>{{active.samples|length if active else 0}} 个样本</span></div>
+    <div class="table-scroll"><table class="scans"><thead><tr><th>包裹号</th><th>替换原因</th><th>状态</th><th>领取客服</th><th>操作</th></tr></thead>
+      <tbody id="active-rows">
+      {% if active %}{% for s in active.samples %}
+        <tr><td>{{s.parcel}}</td><td>{{s.reason}}</td><td>{{s.change}}</td>
+          <td>{{s.claimed_by or '—'}}</td>
+          <td>{% if not s.claimed_by %}<button class="claim" data-parcel="{{s.parcel}}">领取</button>{% else %}已锁定{% endif %}</td></tr>
+      {% endfor %}{% else %}<tr><td class="empty">归档前需确认一份清单；补传重抽不会覆盖已确认样本。</td></tr>{% endif %}
+      </tbody></table></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__head"><h2>超时候选池（M5 最新异常）</h2><span>{{overdue|length}}</span></div>
+    <div class="panel__body">
+      {% for p in overdue %}<div class="reason"><b>{{p}}</b> 超时</div>{% else %}<div class="empty">当前无超时包裹。</div>{% endfor %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__head"><h2>清单版本链（只追加）</h2><span>{{versions|length}}</span></div>
+    <div class="panel__body">
+      {% for v in versions %}
+      <div class="reason">
+        <b>V{{v.seq}} · {{v.status}}</b> · {{v.sample_size}} 样本 · 基础批次 {{v.base_run_id[:10]}}…
+        {% if v.status=='待确认' %}<button class="confirm" data-seq="{{v.seq}}">确认并提升为可执行</button>{% endif %}
+        <div style="margin-top:6px">
+          补传前：[{{v.diff.before|join(', ') or '—'}}] → 补传后：[{{v.diff.after|join(', ')}}]
+        </div>
+        {% for d in v.diff.added %}<div style="color:#1a7f37">＋ {{d.parcel}} · {{d.reason}}</div>{% endfor %}
+        {% for d in v.diff.removed %}<div style="color:#b42318">－ {{d.parcel}} · {{d.reason}}</div>{% endfor %}
+      </div>
+      {% else %}<div class="empty">尚无清单，设定固定数量后生成待确认版本。</div>{% endfor %}
+    </div>
+  </section>
+</div>
+<script>window.samplingRun={{ {'id':run.run_id}|tojson }};</script>
+<script src="/static/sampling.js"></script>
+{% endblock %}
